@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Review Summarizer</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome for stars -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #f2f2f2;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Amazon-style header */
+        .amazon-header {
+            background-color: #131921;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .amazon-header img {
+            height: 30px;
+        }
+
+        .amazon-header h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - 60px);
+            padding: 20px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 700px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: scale(1.01);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        h1 {
+            font-weight: 600;
+            color: #232f3e;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* Stars */
+        .stars {
+            text-align: center;
+            color: #FF9900;
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+
+        textarea {
+            resize: none;
+            border-radius: 8px;
+            transition: box-shadow 0.3s ease;
+        }
+
+        textarea:focus {
+            box-shadow: 0 0 8px rgba(255, 153, 0, 0.5);
+            outline: none;
+        }
+
+        #summarize-btn {
+            background: #FF9900;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: 500;
+            color: #111;
+            width: 100%;
+            max-width: 250px;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+
+        #summarize-btn:hover {
+            background: #e68a00;
+            transform: scale(1.05);
+        }
+
+        #summary {
+            background: #fafafa;
+            border-radius: 8px;
+            min-height: 60px;
+            transition: all 0.4s ease;
+            font-size: 16px;
+            line-height: 1.5;
+            padding: 10px;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        #summary.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .summary-box {
+            border: 1px solid #ddd;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: none;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .spinner i {
+            font-size: 24px;
+            color: #FF9900;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Amazon style header -->
+<div class="amazon-header">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" alt="Amazon Logo">
+    <h2>Review Summarizer</h2>
+</div>
+
+<div class="container">
+    <div class="card">
+        <h1>Summarize Your Review</h1>
+
+        <!-- Stars -->
+        <div class="stars">
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star-half-alt"></i>
+        </div>
+
+        <!-- Textarea -->
+        <div class="mb-3">
+            <textarea id="text-input" class="form-control" rows="8" placeholder="Paste your product review here..."></textarea>
+        </div>
+
+        <!-- Button -->
+        <div class="text-center">
+            <button id="summarize-btn" class="btn btn-lg">Summarize Review</button>
+        </div>
+
+        <!-- Spinner -->
+        <div class="spinner" id="spinner">
+            <i class="fas fa-spinner"></i>
+        </div>
+
+        <!-- Output -->
+        <div class="mt-4">
+            <h5 class="text-secondary">Summary:</h5>
+            <div class="p-3 summary-box" id="summary">Your summary will appear here...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Custom JS -->
+<script>
+document.getElementById('summarize-btn').addEventListener('click', async () => {
+    const text = document.getElementById('text-input').value;
+    const summaryDiv = document.getElementById('summary');
+    const spinner = document.getElementById('spinner');
+
+    // Reset
+    summaryDiv.classList.remove('show');
+    summaryDiv.innerText = "";
+    spinner.style.display = 'block';
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/summarize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        spinner.style.display = 'none';
+        summaryDiv.innerText = data.summary;
+        summaryDiv.classList.add('show');
+    } catch (error) {
+        console.error('Error:', error);
+        spinner.style.display = 'none';
+        summaryDiv.innerText = "Error calling API!";
+        summaryDiv.classList.add('show');
+    }
+});
+</script>
+</body>
+</html>
